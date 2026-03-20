@@ -1,0 +1,1034 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Credencial Digital</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  /* ============================================
+     TEMA CLARO / OSCURO - Variables CSS
+     ============================================ */
+
+  :root {
+    /* Brand colors */
+    --brand-green: #00A86B;
+    --brand-green-light: #34D399;
+    --brand-green-dark: #059669;
+    --brand-blue: #0077B6;
+    --brand-blue-light: #38BDF8;
+    --brand-blue-dark: #0369A1;
+    --brand-teal: #0D9488;
+  }
+
+  /* === DARK MODE (default) === */
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg-base: #050a0e;
+      --card-bg: rgba(255, 255, 255, 0.06);
+      --card-border: rgba(255, 255, 255, 0.1);
+      --card-hover: rgba(255, 255, 255, 0.09);
+      --glass-bg: rgba(255, 255, 255, 0.04);
+      --glass-border: rgba(255, 255, 255, 0.07);
+      --text-primary: #f0fdf4;
+      --text-secondary: rgba(240, 253, 244, 0.65);
+      --text-tertiary: rgba(240, 253, 244, 0.35);
+      --avatar-bg: rgba(20, 30, 25, 0.9);
+      --badge-active-bg: rgba(0, 168, 107, 0.12);
+      --badge-active-border: rgba(0, 168, 107, 0.25);
+      --badge-inactive-bg: rgba(239, 68, 68, 0.12);
+      --badge-inactive-border: rgba(239, 68, 68, 0.25);
+      --badge-inactive-color: #f87171;
+      --btn-gradient: linear-gradient(135deg, var(--brand-green), var(--brand-blue));
+      --btn-shadow: rgba(0, 168, 107, 0.3);
+      --gradient-1: rgba(0, 168, 107, 0.18);
+      --gradient-2: rgba(0, 119, 182, 0.14);
+      --gradient-3: rgba(13, 148, 136, 0.1);
+      --gradient-4: rgba(52, 211, 153, 0.06);
+      --shine-color: rgba(255, 255, 255, 0.03);
+      --divider: rgba(255, 255, 255, 0.08);
+      --noise-opacity: 0.025;
+      --top-line: rgba(255, 255, 255, 0.12);
+      --footer-color: rgba(240, 253, 244, 0.25);
+      --tag-bg: rgba(255, 255, 255, 0.05);
+      --tag-border: rgba(255, 255, 255, 0.08);
+      --tag-hover-bg: rgba(0, 168, 107, 0.1);
+      --tag-hover-border: rgba(0, 168, 107, 0.2);
+    }
+  }
+
+  /* === LIGHT MODE === */
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg-base: #f0faf5;
+      --card-bg: rgba(255, 255, 255, 0.75);
+      --card-border: rgba(0, 80, 60, 0.1);
+      --card-hover: rgba(255, 255, 255, 0.9);
+      --glass-bg: rgba(0, 80, 60, 0.03);
+      --glass-border: rgba(0, 80, 60, 0.08);
+      --text-primary: #052e16;
+      --text-secondary: rgba(5, 46, 22, 0.6);
+      --text-tertiary: rgba(5, 46, 22, 0.38);
+      --avatar-bg: rgba(240, 250, 245, 0.95);
+      --badge-active-bg: rgba(0, 168, 107, 0.1);
+      --badge-active-border: rgba(0, 168, 107, 0.25);
+      --badge-inactive-bg: rgba(239, 68, 68, 0.08);
+      --badge-inactive-border: rgba(239, 68, 68, 0.2);
+      --badge-inactive-color: #dc2626;
+      --btn-gradient: linear-gradient(135deg, var(--brand-green), var(--brand-blue));
+      --btn-shadow: rgba(0, 119, 182, 0.25);
+      --gradient-1: rgba(0, 168, 107, 0.12);
+      --gradient-2: rgba(0, 119, 182, 0.1);
+      --gradient-3: rgba(13, 148, 136, 0.08);
+      --gradient-4: rgba(52, 211, 153, 0.06);
+      --shine-color: rgba(255, 255, 255, 0.4);
+      --divider: rgba(0, 80, 60, 0.08);
+      --noise-opacity: 0.015;
+      --top-line: rgba(255, 255, 255, 0.6);
+      --footer-color: rgba(5, 46, 22, 0.3);
+      --tag-bg: rgba(0, 80, 60, 0.04);
+      --tag-border: rgba(0, 80, 60, 0.1);
+      --tag-hover-bg: rgba(0, 168, 107, 0.08);
+      --tag-hover-border: rgba(0, 168, 107, 0.2);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-base);
+    overflow-x: hidden;
+  }
+
+  /* ============================================
+     ANIMATED GRADIENT BACKGROUND
+     Optimizado para gama baja: usa transform3d 
+     para GPU compositing, animaciones largas y 
+     suaves, sin repaint del DOM.
+     ============================================ */
+  .bg-gradient {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+  }
+
+  .bg-gradient::before {
+    content: '';
+    position: absolute;
+    top: -30%; left: -30%;
+    width: 160%; height: 160%;
+    background:
+      radial-gradient(ellipse at 25% 45%, var(--gradient-1) 0%, transparent 55%),
+      radial-gradient(ellipse at 75% 25%, var(--gradient-2) 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 80%, var(--gradient-3) 0%, transparent 50%);
+    will-change: transform;
+    animation: gradientFlow 20s ease-in-out infinite alternate;
+  }
+
+  .bg-gradient::after {
+    content: '';
+    position: absolute;
+    top: -30%; left: -30%;
+    width: 160%; height: 160%;
+    background:
+      radial-gradient(ellipse at 55% 35%, var(--gradient-2) 0%, transparent 50%),
+      radial-gradient(ellipse at 35% 65%, var(--gradient-1) 0%, transparent 50%);
+    will-change: transform;
+    animation: gradientFlow2 25s ease-in-out infinite alternate;
+  }
+
+  @keyframes gradientFlow {
+    0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
+    100% { transform: translate3d(3%, -3%, 0) rotate(1.5deg); }
+  }
+
+  @keyframes gradientFlow2 {
+    0%   { transform: translate3d(0, 0, 0) rotate(0deg); }
+    100% { transform: translate3d(-2%, 2%, 0) rotate(-1deg); }
+  }
+
+  /* Reduce animaciones si el usuario prefiere menos movimiento */
+  @media (prefers-reduced-motion: reduce) {
+    .bg-gradient::before,
+    .bg-gradient::after {
+      animation: none;
+    }
+  }
+
+  /* Noise texture */
+  .noise {
+    position: fixed;
+    inset: 0;
+    z-index: 1;
+    opacity: var(--noise-opacity);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  /* ============================================
+     CREDENTIAL CONTAINER
+     ============================================ */
+  .credential-container {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    width: 100%;
+    max-width: 420px;
+    animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+  }
+
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateY(40px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* ============================================
+     MAIN CARD
+     ============================================ */
+  .credential-card {
+    width: 100%;
+    background: var(--card-bg);
+    backdrop-filter: blur(40px) saturate(180%);
+    -webkit-backdrop-filter: blur(40px) saturate(180%);
+    border: 1px solid var(--card-border);
+    border-radius: 24px;
+    padding: 32px 28px 28px;
+    position: relative;
+    overflow: hidden;
+    animation: cardReveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) 0.15s forwards;
+    opacity: 0;
+  }
+
+  @keyframes cardReveal {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .credential-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--top-line) 30%, var(--top-line) 70%, transparent);
+  }
+
+  .card-shine {
+    position: absolute;
+    top: 0; left: -100%;
+    width: 50%; height: 100%;
+    background: linear-gradient(90deg, transparent, var(--shine-color), transparent);
+    transform: skewX(-15deg);
+    animation: shine 7s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes shine {
+    0%, 100% { left: -100%; }
+    50% { left: 160%; }
+  }
+
+  /* ============================================
+     COMPANY HEADER
+     ============================================ */
+  .company-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.35s forwards;
+    opacity: 0;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .company-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  /* Logo placeholder — reemplazar con <img> cuando tengas el logo */
+  .logo-mark {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--brand-green), var(--brand-blue));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .logo-mark svg {
+    width: 20px; height: 20px;
+  }
+
+  .company-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Status Badge */
+  .badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 100px;
+  }
+
+  .badge-active {
+    background: var(--badge-active-bg);
+    border: 1px solid var(--badge-active-border);
+  }
+
+  .badge-inactive {
+    background: var(--badge-inactive-bg);
+    border: 1px solid var(--badge-inactive-border);
+  }
+
+  .badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+  }
+
+  .badge-active .badge-dot {
+    background: var(--brand-green);
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  .badge-inactive .badge-dot {
+    background: var(--badge-inactive-color);
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.75); }
+  }
+
+  .badge-text {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+
+  .badge-active .badge-text { color: var(--brand-green); }
+  .badge-inactive .badge-text { color: var(--badge-inactive-color); }
+
+  /* ============================================
+     AVATAR SECTION
+     ============================================ */
+  .avatar-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 22px;
+    animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.45s forwards;
+    opacity: 0;
+  }
+
+  .avatar-ring {
+    width: 92px; height: 92px;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, var(--brand-green), var(--brand-blue), var(--brand-teal));
+    background-size: 200% 200%;
+    animation: ringGlow 5s ease-in-out infinite;
+    margin-bottom: 16px;
+  }
+
+  @keyframes ringGlow {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+  }
+
+  .avatar-inner {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: var(--avatar-bg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--brand-green);
+    letter-spacing: -1px;
+    border: 2.5px solid var(--bg-base);
+    overflow: hidden;
+  }
+
+  .avatar-inner img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+
+  .person-name {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: -0.4px;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .person-role {
+    font-size: 14px;
+    font-weight: 600;
+    background: linear-gradient(135deg, var(--brand-green), var(--brand-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-top: 5px;
+    text-align: center;
+  }
+
+  .person-project {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  /* ============================================
+     DIVIDER
+     ============================================ */
+  .divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--divider), transparent);
+    margin: 18px 0;
+  }
+
+  /* ============================================
+     INFO ITEMS
+     ============================================ */
+  .info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.55s forwards;
+    opacity: 0;
+  }
+
+  .info-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 13px;
+    border-radius: 14px;
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: default;
+    text-decoration: none;
+    color: inherit;
+  }
+
+  a.info-item {
+    cursor: pointer;
+  }
+
+  a.info-item:hover {
+    background: var(--card-hover);
+    border-color: var(--card-border);
+    transform: translateY(-1px);
+  }
+
+  .info-icon {
+    width: 34px; height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .info-icon svg {
+    width: 17px; height: 17px;
+  }
+
+  .icon-email { background: rgba(0, 119, 182, 0.1); color: var(--brand-blue); }
+  .icon-phone { background: rgba(0, 168, 107, 0.1); color: var(--brand-green); }
+  .icon-city { background: rgba(13, 148, 136, 0.1); color: var(--brand-teal); }
+  .icon-id { background: rgba(0, 119, 182, 0.08); color: var(--brand-blue-light); }
+
+  .info-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+  }
+
+  .info-label {
+    font-size: 10.5px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    font-weight: 600;
+  }
+
+  .info-value {
+    font-size: 13.5px;
+    color: var(--text-primary);
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ============================================
+     SAVE CONTACT BUTTON
+     ============================================ */
+  .save-contact-btn {
+    width: 100%;
+    padding: 15px;
+    border-radius: 14px;
+    border: none;
+    background: var(--btn-gradient);
+    color: #fff;
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    margin-top: 4px;
+    letter-spacing: 0.2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.65s forwards;
+    opacity: 0;
+  }
+
+  .save-contact-btn svg {
+    width: 18px; height: 18px;
+  }
+
+  .save-contact-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px var(--btn-shadow);
+  }
+
+  .save-contact-btn:active {
+    transform: scale(0.98);
+  }
+
+  /* ============================================
+     FOOTER
+     ============================================ */
+  .credential-footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding-top: 6px;
+    gap: 4px;
+    animation: slideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.75s forwards;
+    opacity: 0;
+  }
+
+  .footer-brand {
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, var(--brand-green), var(--brand-blue));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .footer-credit {
+    font-size: 9.5px;
+    color: var(--footer-color);
+    letter-spacing: 0.8px;
+    font-weight: 500;
+  }
+
+  .footer-credit .wig {
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+
+  /* ============================================
+     RESPONSIVE
+     ============================================ */
+  @media (max-width: 440px) {
+    .credential-card {
+      padding: 26px 20px 22px;
+      border-radius: 20px;
+    }
+    .person-name { font-size: 21px; }
+    .info-item { padding: 10px 11px; }
+    .credential-container { padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Background -->
+<div class="bg-gradient"></div>
+<div class="noise"></div>
+
+<!-- Credential -->
+<div class="credential-container">
+  <!-- Loading State -->
+  <div id="loading-state" style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px;">
+    <div style="width:48px;height:48px;border-radius:50%;border:3px solid var(--glass-border);border-top-color:var(--brand-green);animation:spin 0.8s linear infinite;"></div>
+    <span style="font-size:14px;color:var(--text-secondary);font-weight:500;font-family:inherit;">Cargando credencial...</span>
+  </div>
+  <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
+
+  <!-- Error State -->
+  <div id="error-state" style="display:none;flex-direction:column;align-items:center;gap:14px;padding:40px 28px;background:var(--card-bg);backdrop-filter:blur(40px);border:1px solid var(--card-border);border-radius:24px;text-align:center;">
+    <div style="width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;font-size:28px;">⚠</div>
+    <span id="error-message" style="font-size:15px;color:var(--text-primary);font-weight:600;">Colaborador no encontrado</span>
+    <span style="font-size:13px;color:var(--text-tertiary);">Verifica el ID o contacta al administrador</span>
+  </div>
+
+  <!-- Deactivated State (REQUIERE QR = NO) -->
+  <div id="deactivated-state" style="display:none;flex-direction:column;align-items:center;gap:18px;padding:48px 32px;background:var(--card-bg);backdrop-filter:blur(40px);-webkit-backdrop-filter:blur(40px);border:1px solid var(--card-border);border-radius:24px;text-align:center;max-width:100%;">
+    <div style="width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,rgba(0,168,107,0.08),rgba(0,119,182,0.08));display:flex;align-items:center;justify-content:center;">
+      <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:center;">
+      <span style="font-size:17px;color:var(--text-primary);font-weight:700;">Credencial no disponible</span>
+      <span id="deactivated-name" style="font-size:14px;color:var(--text-secondary);font-weight:500;"></span>
+    </div>
+    <span style="font-size:13px;color:var(--text-tertiary);line-height:1.5;max-width:280px;">Esta credencial digital ha sido desactivada. Si crees que es un error, contacta al administrador.</span>
+    <div style="margin-top:6px;padding:8px 16px;border-radius:100px;background:var(--glass-bg);border:1px solid var(--glass-border);">
+      <span style="font-size:11px;color:var(--text-tertiary);font-weight:600;letter-spacing:1px;text-transform:uppercase;">GLOBECO SMART</span>
+    </div>
+  </div>
+
+  <div class="credential-card" style="display:none;">
+    <div class="card-shine"></div>
+
+    <!-- Header: Logo + Estado -->
+    <div class="company-header">
+      <div class="company-logo">
+        <!-- REEMPLAZAR: Cambia este bloque por <img src="tu-logo.png" alt="Logo" style="width:34px;height:34px;border-radius:9px"> -->
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a10 10 0 1 0 10 10"/>
+            <path d="M12 2a14.5 14.5 0 0 0 0 20"/>
+            <path d="M12 2a14.5 14.5 0 0 1 0 20"/>
+            <path d="M2 12h10"/>
+          </svg>
+        </div>
+        <span class="company-name">Globeco Smart</span>
+      </div>
+      <div class="badge badge-active" id="status-badge">
+        <div class="badge-dot"></div>
+        <span class="badge-text">Activo</span>
+      </div>
+    </div>
+
+    <!-- Avatar + Info principal -->
+    <div class="avatar-section">
+      <div class="avatar-ring">
+        <div class="avatar-inner" id="avatar">MG</div>
+      </div>
+      <div class="person-name" id="person-name">María González</div>
+      <div class="person-role" id="person-role">Directora de Operaciones</div>
+      <div class="person-project" id="person-project">Proyecto Amazonía</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Datos -->
+    <div class="info-grid">
+      <a class="info-item" id="email-row" href="/cdn-cgi/l/email-protection#046965766d652a636b6a7e6568617e4463686b6661676b77696576702a676b69">
+        <div class="info-icon icon-email">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        </div>
+        <div class="info-content">
+          <span class="info-label">Email</span>
+          <span class="info-value" id="email-value"><span class="__cf_email__" data-cfemail="036e62716a622d646c6d79626f667943646f6c6166606c706e6271772d606c6e">[email&#160;protected]</span></span>
+        </div>
+      </a>
+
+      <a class="info-item" id="phone-row" href="tel:+593991234567">
+        <div class="info-icon icon-phone">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        </div>
+        <div class="info-content">
+          <span class="info-label">Teléfono</span>
+          <span class="info-value" id="phone-value">+593 99 123 4567</span>
+        </div>
+      </a>
+
+      <div class="info-item">
+        <div class="info-icon icon-city">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="info-content">
+          <span class="info-label">Ciudad</span>
+          <span class="info-value" id="city-value">Quito</span>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-icon icon-id">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="14" x="2" y="5" rx="2"/><line x1="2" x2="22" y1="10" y2="10"/></svg>
+        </div>
+        <div class="info-content">
+          <span class="info-label">ID Colaborador</span>
+          <span class="info-value" id="id-value">COL-0042</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Botón Guardar Contacto -->
+    <button class="save-contact-btn" onclick="saveContact()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+      Guardar Contacto
+    </button>
+  </div>
+
+  <!-- Footer -->
+  <div class="credential-footer" style="display:none;">
+    <span class="footer-brand">GLOBECO SMART</span>
+    <span class="footer-credit">Designed & Built by <span class="wig">W.I.G</span> · DoA & CTO</span>
+  </div>
+</div>
+
+<script>
+  // ============================================
+  // CONFIGURACIÓN — Tu Google Sheet CSV público
+  // ============================================
+  const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ1tfVCCLyArHF2pTZ6DfxI91vsoPQqEfzhame8khKUBOLTqzjngdaJkClmjvs-fw3oQuOr2A_RakmD/pub?gid=0&single=true&output=csv';
+
+  // ============================================
+  // MAPEO DE COLUMNAS (según tu Google Sheet)
+  // A=0  ID
+  // B=1  Nombres
+  // C=2  Apellidos
+  // D=3  Alias (nombre completo para mostrar)
+  // E=4  Numero (teléfono)
+  // F=5  Cedula
+  // G=6  Correo
+  // H=7  Proyecto empresa
+  // I=8  Ciudad
+  // J=9  Cargo
+  // K=10 (no se usa)
+  // L=11 Estado
+  // ...
+  // S=18 Requiere QR (SI / NO)
+  // ============================================
+  const COL = {
+    ID: 0,
+    NOMBRES: 1,
+    APELLIDOS: 2,
+    ALIAS: 3,
+    NUMERO: 4,
+    CEDULA: 5,
+    CORREO: 6,
+    PROYECTO: 7,
+    CIUDAD: 8,
+    CARGO: 9,
+    ESTADO: 11,
+    REQUIERE_QR: 18
+  };
+
+  // Variable global para vCard
+  let currentData = null;
+
+  // ============================================
+  // PARSER CSV (maneja comas dentro de comillas)
+  // ============================================
+  function parseCSV(text) {
+    const rows = [];
+    let current = '';
+    let inQuotes = false;
+    let row = [];
+
+    for (let i = 0; i < text.length; i++) {
+      const ch = text[i];
+      const next = text[i + 1];
+
+      if (inQuotes) {
+        if (ch === '"' && next === '"') {
+          current += '"';
+          i++;
+        } else if (ch === '"') {
+          inQuotes = false;
+        } else {
+          current += ch;
+        }
+      } else {
+        if (ch === '"') {
+          inQuotes = true;
+        } else if (ch === ',') {
+          row.push(current.trim());
+          current = '';
+        } else if (ch === '\n' || (ch === '\r' && next === '\n')) {
+          row.push(current.trim());
+          rows.push(row);
+          row = [];
+          current = '';
+          if (ch === '\r') i++;
+        } else {
+          current += ch;
+        }
+      }
+    }
+    // Última fila
+    if (current || row.length > 0) {
+      row.push(current.trim());
+      rows.push(row);
+    }
+    return rows;
+  }
+
+  // ============================================
+  // FORMATEAR TELÉFONO
+  // ============================================
+  function formatPhone(raw) {
+    if (!raw) return '';
+    const clean = raw.replace(/\D/g, '');
+    if (clean.length === 12) {
+      return `+${clean.slice(0,3)} ${clean.slice(3,5)} ${clean.slice(5,8)} ${clean.slice(8)}`;
+    }
+    if (clean.length === 10) {
+      return `${clean.slice(0,3)} ${clean.slice(3,6)} ${clean.slice(6)}`;
+    }
+    return raw;
+  }
+
+  // ============================================
+  // DETECTAR ESTADO (activo / inactivo)
+  // ============================================
+  function detectEstado(valor) {
+    if (!valor) return 'Activo';
+    const v = valor.toLowerCase().trim();
+    if (v.includes('inactiv') || v.includes('baja') || v.includes('desactiv')) {
+      return 'Inactivo';
+    }
+    return 'Activo';
+  }
+
+  // ============================================
+  // OBTENER INICIALES
+  // ============================================
+  function getInitials(name) {
+    if (!name) return '??';
+    return name.split(' ').filter(w => w.length > 0).map(w => w[0]).slice(0, 2).join('').toUpperCase();
+  }
+
+  // ============================================
+  // RENDERIZAR PERFIL
+  // ============================================
+  function renderProfile(data) {
+    currentData = data;
+
+    // Ocultar loading, mostrar contenido
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('error-state').style.display = 'none';
+    document.getElementById('deactivated-state').style.display = 'none';
+    document.querySelector('.credential-card').style.display = 'block';
+    document.querySelector('.credential-footer').style.display = 'flex';
+
+    // Avatar
+    document.getElementById('avatar').textContent = getInitials(data.alias);
+
+    // Datos principales
+    document.getElementById('person-name').textContent = data.alias;
+    document.getElementById('person-role').textContent = data.cargo;
+    document.getElementById('person-project').textContent = data.proyecto;
+
+    // Info grid
+    if (data.email) {
+      document.getElementById('email-value').textContent = data.email;
+      document.getElementById('email-row').href = 'mailto:' + data.email;
+      document.getElementById('email-row').style.display = 'flex';
+    } else {
+      document.getElementById('email-row').style.display = 'none';
+    }
+
+    if (data.telefono) {
+      document.getElementById('phone-value').textContent = data.telefonoDisplay;
+      document.getElementById('phone-row').href = 'tel:+' + data.telefono.replace(/\D/g, '');
+      document.getElementById('phone-row').style.display = 'flex';
+    } else {
+      document.getElementById('phone-row').style.display = 'none';
+    }
+
+    document.getElementById('city-value').textContent = data.ciudad || '—';
+    document.getElementById('id-value').textContent = data.id;
+
+    // Estado
+    const badge = document.getElementById('status-badge');
+    if (data.estado === 'Inactivo') {
+      badge.className = 'badge badge-inactive';
+      badge.querySelector('.badge-text').textContent = 'Inactivo';
+    } else {
+      badge.className = 'badge badge-active';
+      badge.querySelector('.badge-text').textContent = 'Activo';
+    }
+
+    // Título de la página
+    document.title = `${data.alias} · Globeco Smart`;
+  }
+
+  // ============================================
+  // MOSTRAR ERROR
+  // ============================================
+  function showError(message) {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('error-state').style.display = 'flex';
+    document.getElementById('deactivated-state').style.display = 'none';
+    document.getElementById('error-message').textContent = message;
+    document.querySelector('.credential-card').style.display = 'none';
+    document.querySelector('.credential-footer').style.display = 'none';
+  }
+
+  // ============================================
+  // MOSTRAR CREDENCIAL DESACTIVADA
+  // ============================================
+  function showDeactivated(nombre) {
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('error-state').style.display = 'none';
+    document.getElementById('deactivated-state').style.display = 'flex';
+    document.querySelector('.credential-card').style.display = 'none';
+    document.querySelector('.credential-footer').style.display = 'none';
+    if (nombre) {
+      document.getElementById('deactivated-name').textContent = nombre;
+    }
+    document.title = 'Credencial no disponible · Globeco Smart';
+  }
+
+  // ============================================
+  // GUARDAR CONTACTO (vCard)
+  // ============================================
+  function saveContact() {
+    if (!currentData) return;
+    const d = currentData;
+    const nameParts = d.alias.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    const vcard = [
+      'BEGIN:VCARD',
+      'VERSION:3.0',
+      `FN:${d.alias}`,
+      `N:${lastName};${firstName};;;`,
+      `ORG:Globeco Smart - ${d.proyecto}`,
+      `TITLE:${d.cargo}`,
+      d.telefono ? `TEL;TYPE=CELL:+${d.telefono.replace(/\D/g, '')}` : '',
+      d.email ? `EMAIL:${d.email}` : '',
+      `ADR;TYPE=WORK:;;${d.ciudad};;Ecuador`,
+      `NOTE:ID: ${d.id} | Proyecto: ${d.proyecto}`,
+      'END:VCARD'
+    ].filter(Boolean).join('\n');
+
+    const blob = new Blob([vcard], { type: 'text/vcard;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${d.alias.replace(/\s+/g, '_')}.vcf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ============================================
+  // CARGAR DATOS DESDE GOOGLE SHEETS
+  // ============================================
+  async function loadFromSheet() {
+    const params = new URLSearchParams(window.location.search);
+    const employeeId = (params.get('id') || '').trim().toUpperCase();
+
+    // Si no hay ID en la URL, mostrar datos de ejemplo
+    if (!employeeId) {
+      renderProfile({
+        id: 'GL001',
+        alias: 'William Israel Gallegos Carrillo',
+        cargo: 'CTO',
+        proyecto: 'GLOBECO',
+        ciudad: 'QUITO',
+        email: 'wgallegos@globecolatam.com',
+        telefono: '593978627143',
+        telefonoDisplay: formatPhone('593978627143'),
+        estado: 'Activo'
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(SHEET_CSV_URL);
+      if (!response.ok) throw new Error('No se pudo conectar con la base de datos');
+
+      const csvText = await response.text();
+      const rows = parseCSV(csvText);
+
+      // Saltar la fila de encabezados (fila 0)
+      const dataRows = rows.slice(1);
+
+      // Buscar por ID (columna A)
+      const match = dataRows.find(row => 
+        row[COL.ID] && row[COL.ID].trim().toUpperCase() === employeeId
+      );
+
+      if (!match) {
+        showError(`No se encontró el colaborador con ID: ${employeeId}`);
+        return;
+      }
+
+      // Verificar si REQUIERE QR está en "NO"
+      const requiereQR = (match[COL.REQUIERE_QR] || '').trim().toUpperCase();
+      if (requiereQR === 'NO') {
+        const nombre = match[COL.ALIAS] || '';
+        showDeactivated(nombre);
+        return;
+      }
+
+      // Extraer datos y mostrar credencial
+      // SIEMPRE usa columna D (Alias) para el nombre
+      renderProfile({
+        id: match[COL.ID] || '',
+        alias: match[COL.ALIAS] || '',
+        cargo: match[COL.CARGO] || '',
+        proyecto: match[COL.PROYECTO] || '',
+        ciudad: match[COL.CIUDAD] || '',
+        email: match[COL.CORREO] || '',
+        telefono: match[COL.NUMERO] || '',
+        telefonoDisplay: formatPhone(match[COL.NUMERO] || ''),
+        estado: detectEstado(match[COL.ESTADO] || '')
+      });
+
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      showError('Error al cargar los datos. Intenta de nuevo.');
+    }
+  }
+
+  // ============================================
+  // INICIAR
+  // ============================================
+  loadFromSheet();
+</script>
