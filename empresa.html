@@ -382,6 +382,11 @@
     const key = (params.get('e') || 'gtm').toLowerCase().trim();
     const emp = EMPRESAS[key] || EMPRESAS.gtm;
 
+    // Reconstruir el botón "Volver" para regresar a la credencial de la persona
+    const empId = (params.get('id') || '').trim();
+    const backBtn = document.getElementById('back-btn');
+    backBtn.href = 'index.html' + (empId ? '?id=' + encodeURIComponent(empId) : '');
+
     document.title = emp.legal + ' · Globeco Latam';
 
     const logoBig = document.getElementById('logo-big');
