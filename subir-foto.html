@@ -147,6 +147,41 @@
   .stage-placeholder svg { width:52px; height:52px; }
   .stage-placeholder span { font-size:12px; font-weight:600; line-height:1.4; }
 
+  /* Editor de encuadre (arrastrar + zoom) */
+  .crop-img {
+    position:absolute; top:0; left:0;
+    transform-origin:0 0;
+    cursor:grab; user-select:none; -webkit-user-select:none;
+    touch-action:none; will-change:transform;
+    max-width:none;
+  }
+  .crop-img:active { cursor:grabbing; }
+  .crop-overlay {
+    position:absolute; inset:0; border-radius:50%; pointer-events:none;
+    box-shadow:0 0 0 2000px rgba(0,0,0,0.45);
+  }
+  .zoom-control {
+    display:none; align-items:center; gap:12px;
+    width:100%; margin-bottom:16px; padding:0 4px;
+  }
+  .zoom-control svg { width:18px; height:18px; color:var(--text-tertiary); flex-shrink:0; }
+  .zoom-slider {
+    flex:1; -webkit-appearance:none; appearance:none;
+    height:5px; border-radius:100px; outline:none;
+    background:var(--btn-secondary-bg);
+  }
+  .zoom-slider::-webkit-slider-thumb {
+    -webkit-appearance:none; appearance:none;
+    width:20px; height:20px; border-radius:50%;
+    background:linear-gradient(135deg,var(--brand-green),var(--brand-blue));
+    cursor:pointer; box-shadow:0 2px 8px var(--btn-shadow);
+  }
+  .zoom-slider::-moz-range-thumb {
+    width:20px; height:20px; border-radius:50%; border:none;
+    background:linear-gradient(135deg,var(--brand-green),var(--brand-blue));
+    cursor:pointer;
+  }
+
   .hint {
     text-align:center; font-size:12px; color:var(--text-tertiary);
     line-height:1.5; margin-bottom:18px; padding:0 10px;
@@ -242,8 +277,16 @@
         </div>
         <video id="video" autoplay playsinline muted class="mirror" style="display:none;"></video>
         <canvas id="canvas" style="display:none;"></canvas>
+        <img id="crop-img" class="crop-img" style="display:none;" alt="" draggable="false">
+        <div class="crop-overlay" id="crop-overlay" style="display:none;"></div>
         <img id="preview" style="display:none;" alt="Previsualización">
         <div class="stage-ring" id="ring"></div>
+      </div>
+
+      <!-- Control de zoom (solo en modo encuadre) -->
+      <div class="zoom-control" id="zoom-control">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+        <input type="range" class="zoom-slider" id="zoom-slider" min="1" max="4" step="0.01" value="1">
       </div>
 
       <p class="hint" id="hint">
@@ -277,7 +320,11 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       </div>
       <h2>¡Foto actualizada!</h2>
-      <p>Tu nueva foto se verá reflejada en tu credencial digital en aproximadamente 1 minuto. Ya puedes cerrar esta página.</p>
+      <p>Tu nueva foto se verá reflejada en tu credencial digital en aproximadamente 1 minuto.</p>
+      <a class="btn btn-primary" id="btn-view-credential" href="#" style="margin-top:8px;width:100%;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h3"/><path d="M15 12h3"/><path d="M7 16h10"/></svg>
+        Ver mi credencial
+      </a>
     </div>
 
     <!-- PANTALLA DE ERROR -->
@@ -403,24 +450,188 @@
     finalizeCapture();
   }
 
-  // Procesa un archivo de galería → cuadrado centrado
+  // ============================================
+  // EDITOR DE ENCUADRE (galería): arrastrar + zoom
+  // ============================================
+  const cropImg = document.getElementById('crop-img');
+  const cropOverlay = document.getElementById('crop-overlay');
+  const zoomControl = document.getElementById('zoom-control');
+  const zoomSlider = document.getElementById('zoom-slider');
+
+  let cropState = {
+    active: false,
+    natW: 0, natH: 0,     // dimensiones naturales de la imagen
+    baseScale: 1,         // escala mínima (cubre el círculo)
+    scale: 1,             // escala actual
+    x: 0, y: 0,           // desplazamiento (top-left de la imagen dentro del stage)
+    stageSize: 0
+  };
+
+  // Procesa un archivo de galería → abre el editor de encuadre
   function processFile(file) {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = function() {
-      const side = Math.min(img.width, img.height);
-      const sx = (img.width - side) / 2, sy = (img.height - side) / 2;
-      canvas.width = OUTPUT_SIZE; canvas.height = OUTPUT_SIZE;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, sx, sy, side, side, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
-      URL.revokeObjectURL(url);
-      finalizeCapture();
+      const stageSize = stage.clientWidth; // círculo cuadrado
+      cropState.natW = img.naturalWidth;
+      cropState.natH = img.naturalHeight;
+      cropState.stageSize = stageSize;
+
+      // Escala mínima para que la imagen SIEMPRE cubra el círculo
+      cropState.baseScale = Math.max(stageSize / img.naturalWidth, stageSize / img.naturalHeight);
+      cropState.scale = cropState.baseScale;
+
+      // Centrar
+      const w = img.naturalWidth * cropState.scale;
+      const h = img.naturalHeight * cropState.scale;
+      cropState.x = (stageSize - w) / 2;
+      cropState.y = (stageSize - h) / 2;
+
+      cropImg.src = url;
+      cropImg.style.display = 'block';
+      cropOverlay.style.display = 'block';
+      placeholder.style.display = 'none';
+      preview.style.display = 'none';
+      ring.classList.add('pulse');
+
+      // Configurar slider: de baseScale a baseScale*4
+      zoomSlider.min = cropState.baseScale;
+      zoomSlider.max = cropState.baseScale * 4;
+      zoomSlider.step = cropState.baseScale / 100;
+      zoomSlider.value = cropState.baseScale;
+      zoomControl.style.display = 'flex';
+
+      cropState.active = true;
+      applyCropTransform();
+
+      subtitle.textContent = 'Ajusta tu foto';
+      hint.innerHTML = 'Arrastra para mover y usa el zoom para encuadrar.<br>Mantén tu rostro dentro del círculo.';
+      setActions(`
+        <button class="btn btn-primary" id="btn-crop-ok">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+          Listo, usar así
+        </button>
+        <button class="btn btn-secondary" id="btn-crop-cancel">Elegir otra</button>
+      `);
     };
     img.onerror = function() {
       URL.revokeObjectURL(url);
       hint.textContent = 'No pudimos leer esa imagen. Intenta con otra.';
     };
     img.src = url;
+  }
+
+  function applyCropTransform() {
+    cropImg.style.transform =
+      'translate(' + cropState.x + 'px,' + cropState.y + 'px) scale(' + cropState.scale + ')';
+  }
+
+  // Mantener la imagen siempre cubriendo el círculo (sin huecos)
+  function clampCrop() {
+    const w = cropState.natW * cropState.scale;
+    const h = cropState.natH * cropState.scale;
+    const s = cropState.stageSize;
+    // límites: la imagen no puede dejar ver el fondo
+    const minX = s - w, maxX = 0;
+    const minY = s - h, maxY = 0;
+    cropState.x = Math.min(maxX, Math.max(minX, cropState.x));
+    cropState.y = Math.min(maxY, Math.max(minY, cropState.y));
+  }
+
+  // Zoom manteniendo el centro del círculo como pivote
+  function setCropScale(newScale) {
+    newScale = Math.max(cropState.baseScale, Math.min(cropState.baseScale * 4, newScale));
+    const s = cropState.stageSize;
+    const cx = s / 2, cy = s / 2;
+    // punto de la imagen bajo el centro antes del zoom
+    const imgX = (cx - cropState.x) / cropState.scale;
+    const imgY = (cy - cropState.y) / cropState.scale;
+    cropState.scale = newScale;
+    // reposicionar para que ese punto siga bajo el centro
+    cropState.x = cx - imgX * newScale;
+    cropState.y = cy - imgY * newScale;
+    clampCrop();
+    applyCropTransform();
+    zoomSlider.value = newScale;
+  }
+
+  // --- Arrastrar (mouse + touch) ---
+  let dragging = false, lastX = 0, lastY = 0;
+  function dragStart(clientX, clientY) { dragging = true; lastX = clientX; lastY = clientY; }
+  function dragMove(clientX, clientY) {
+    if (!dragging) return;
+    cropState.x += (clientX - lastX);
+    cropState.y += (clientY - lastY);
+    lastX = clientX; lastY = clientY;
+    clampCrop(); applyCropTransform();
+  }
+  function dragEnd() { dragging = false; }
+
+  cropImg.addEventListener('mousedown', e => { e.preventDefault(); dragStart(e.clientX, e.clientY); });
+  window.addEventListener('mousemove', e => dragMove(e.clientX, e.clientY));
+  window.addEventListener('mouseup', dragEnd);
+
+  // --- Touch: arrastrar 1 dedo, pinch-zoom 2 dedos ---
+  let pinchStartDist = 0, pinchStartScale = 1;
+  function touchDist(t) {
+    const dx = t[0].clientX - t[1].clientX;
+    const dy = t[0].clientY - t[1].clientY;
+    return Math.hypot(dx, dy);
+  }
+  cropImg.addEventListener('touchstart', e => {
+    if (!cropState.active) return;
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      dragStart(e.touches[0].clientX, e.touches[0].clientY);
+    } else if (e.touches.length === 2) {
+      dragging = false;
+      pinchStartDist = touchDist(e.touches);
+      pinchStartScale = cropState.scale;
+    }
+  }, { passive: false });
+  cropImg.addEventListener('touchmove', e => {
+    if (!cropState.active) return;
+    e.preventDefault();
+    if (e.touches.length === 1) {
+      dragMove(e.touches[0].clientX, e.touches[0].clientY);
+    } else if (e.touches.length === 2) {
+      const d = touchDist(e.touches);
+      if (pinchStartDist > 0) setCropScale(pinchStartScale * (d / pinchStartDist));
+    }
+  }, { passive: false });
+  cropImg.addEventListener('touchend', dragEnd);
+
+  // --- Zoom con slider y rueda ---
+  zoomSlider.addEventListener('input', () => setCropScale(parseFloat(zoomSlider.value)));
+  stage.addEventListener('wheel', e => {
+    if (!cropState.active) return;
+    e.preventDefault();
+    setCropScale(cropState.scale * (e.deltaY < 0 ? 1.06 : 0.94));
+  }, { passive: false });
+
+  // Confirmar encuadre → recorta exactamente lo que se ve en el círculo
+  function confirmCrop() {
+    const s = cropState.stageSize;
+    // región visible de la imagen (en px de imagen natural)
+    const sx = (0 - cropState.x) / cropState.scale;
+    const sy = (0 - cropState.y) / cropState.scale;
+    const sSize = s / cropState.scale;
+
+    canvas.width = OUTPUT_SIZE; canvas.height = OUTPUT_SIZE;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+    ctx.drawImage(cropImg, sx, sy, sSize, sSize, 0, 0, OUTPUT_SIZE, OUTPUT_SIZE);
+
+    endCropMode();
+    finalizeCapture();
+  }
+
+  function endCropMode() {
+    cropState.active = false;
+    cropImg.style.display = 'none';
+    cropOverlay.style.display = 'none';
+    zoomControl.style.display = 'none';
+    ring.classList.remove('pulse');
   }
 
   // Muestra previsualización + botones aceptar/reintentar
@@ -447,6 +658,7 @@
 
   function resetToStart() {
     capturedBlob = null;
+    endCropMode();
     preview.style.display = 'none';
     placeholder.style.display = 'flex';
     subtitle.textContent = 'Coloca tu rostro dentro del círculo';
@@ -486,6 +698,10 @@
         })
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      // Configurar el botón "Ver mi credencial" con el id de la persona.
+      // El parámetro v fuerza recarga fresca para ver la foto nueva antes.
+      const credLink = 'https://globecolatam.github.io/equipo/?id=' + encodeURIComponent(employeeId) + '&v=' + Date.now();
+      document.getElementById('btn-view-credential').href = credLink;
       showScreen('success-screen');
     } catch (e) {
       showError('No pudimos guardar tu foto. Revisa tu conexión e intenta de nuevo.');
@@ -516,12 +732,16 @@
     const cc = document.getElementById('btn-cancel-cam');
     const ac = document.getElementById('btn-accept');
     const rd = document.getElementById('btn-redo');
+    const cok = document.getElementById('btn-crop-ok');
+    const ccan = document.getElementById('btn-crop-cancel');
     if (oc) oc.onclick = openCamera;
     if (gl) gl.onclick = () => fileInput.click();
     if (sh) sh.onclick = shoot;
     if (cc) cc.onclick = () => { stopCamera(); resetToStart(); };
     if (ac) ac.onclick = acceptPhoto;
     if (rd) rd.onclick = () => { resetToStart(); };
+    if (cok) cok.onclick = confirmCrop;
+    if (ccan) ccan.onclick = () => { endCropMode(); fileInput.click(); };
   }
 
   fileInput.addEventListener('change', function(e) {
