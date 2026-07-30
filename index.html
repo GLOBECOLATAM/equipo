@@ -379,6 +379,69 @@
     object-fit: cover;
   }
 
+  /* Cuando hay foto: la imagen es clicable (zoom estilo red social) */
+  .avatar-inner.has-photo { background: var(--avatar-bg); }
+  .avatar-inner.has-photo img {
+    cursor: pointer;
+    transition: filter 0.2s ease;
+  }
+  .avatar-inner.has-photo img:hover { filter: brightness(1.06); }
+
+  /* Visor de foto a pantalla completa */
+  .photo-viewer {
+    position: fixed; inset: 0; z-index: 9999;
+    display: none;
+    align-items: center; justify-content: center;
+    background: rgba(0, 0, 0, 0.92);
+    backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+    opacity: 0;
+    transition: opacity 0.28s ease;
+    cursor: zoom-out;
+    padding: 24px;
+  }
+  .photo-viewer.open { display: flex; opacity: 1; }
+
+  .photo-viewer-img {
+    max-width: min(92vw, 560px);
+    max-height: 82vh;
+    border-radius: 20px;
+    object-fit: contain;
+    box-shadow: 0 20px 70px rgba(0,0,0,0.6);
+    transform: scale(0.85);
+    transition: transform 0.32s cubic-bezier(0.16,1,0.3,1);
+    cursor: default;
+  }
+  .photo-viewer.open .photo-viewer-img { transform: scale(1); }
+
+  .photo-viewer-name {
+    position: absolute;
+    bottom: max(28px, env(safe-area-inset-bottom));
+    left: 0; right: 0;
+    text-align: center;
+    color: #fff;
+    font-size: 15px; font-weight: 600;
+    letter-spacing: 0.2px;
+    padding: 0 24px;
+    text-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    pointer-events: none;
+  }
+
+  .photo-viewer-close {
+    position: absolute;
+    top: max(20px, env(safe-area-inset-top));
+    right: 20px;
+    width: 42px; height: 42px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(255,255,255,0.12);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: #fff;
+    cursor: pointer;
+    transition: background 0.2s ease;
+  }
+  .photo-viewer-close:hover { background: rgba(255,255,255,0.22); }
+  .photo-viewer-close svg { width: 20px; height: 20px; }
+
   .person-name {
     font-size: 24px;
     font-weight: 700;
@@ -852,6 +915,45 @@
   </div>
 </div>
 
+<!-- Visor de foto a pantalla completa (estilo red social) -->
+<div class="photo-viewer" id="photo-viewer">
+  <div class="photo-viewer-close" id="photo-viewer-close">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </div>
+  <img class="photo-viewer-img" id="photo-viewer-img" src="" alt="">
+  <div class="photo-viewer-name" id="photo-viewer-name"></div>
+</div>
+
+<script>
+  // ============================================
+  // VISOR DE FOTO (zoom estilo WhatsApp/IG)
+  // ============================================
+  function openPhotoViewer(url, name) {
+    const viewer = document.getElementById('photo-viewer');
+    document.getElementById('photo-viewer-img').src = url;
+    document.getElementById('photo-viewer-name').textContent = name || '';
+    viewer.classList.add('open');
+    document.body.style.overflow = 'hidden';
+  }
+  function closePhotoViewer() {
+    const viewer = document.getElementById('photo-viewer');
+    viewer.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+  (function initPhotoViewer(){
+    const viewer = document.getElementById('photo-viewer');
+    // Cerrar al tocar el fondo (no la imagen)
+    viewer.addEventListener('click', function(e){
+      if (e.target.id !== 'photo-viewer-img') closePhotoViewer();
+    });
+    document.getElementById('photo-viewer-close').addEventListener('click', closePhotoViewer);
+    // Cerrar con Escape
+    document.addEventListener('keydown', function(e){
+      if (e.key === 'Escape') closePhotoViewer();
+    });
+  })();
+</script>
+
 <script>
   // ============================================
   // CONFIGURACIÓN — Tu Google Sheet CSV público
@@ -887,7 +989,8 @@
     CIUDAD: 8,
     CARGO: 9,
     ESTADO: 11,
-    REQUIERE_QR: 18
+    REQUIERE_QR: 18,
+    FOTO: 23
   };
 
   // Variable global para vCard
@@ -989,8 +1092,31 @@
     document.getElementById('holding-section').style.display = 'block';
     document.querySelector('.credential-footer').style.display = 'flex';
 
-    // Avatar
-    document.getElementById('avatar').textContent = getInitials(data.alias);
+    // Avatar: foto si existe, si no iniciales
+    const avatarEl = document.getElementById('avatar');
+    if (data.fotoUrl) {
+      avatarEl.innerHTML = '';
+      avatarEl.classList.add('has-photo');
+      const img = document.createElement('img');
+      img.src = data.fotoUrl;
+      img.alt = data.alias;
+      img.loading = 'lazy';
+      // Si la imagen falla, volver a iniciales
+      img.onerror = function() {
+        avatarEl.classList.remove('has-photo');
+        avatarEl.innerHTML = '';
+        avatarEl.textContent = getInitials(data.alias);
+      };
+      // Click para ver en grande (estilo red social)
+      img.addEventListener('click', function() {
+        openPhotoViewer(data.fotoUrl, data.alias);
+      });
+      avatarEl.appendChild(img);
+    } else {
+      avatarEl.classList.remove('has-photo');
+      avatarEl.innerHTML = '';
+      avatarEl.textContent = getInitials(data.alias);
+    }
 
     // Datos principales
     document.getElementById('person-name').textContent = data.alias;
@@ -1120,7 +1246,8 @@
         email: 'wgallegos@globecolatam.com',
         telefono: '593978627143',
         telefonoDisplay: formatPhone('593978627143'),
-        estado: 'Activo'
+        estado: 'Activo',
+        fotoUrl: ''
       });
       return;
     }
@@ -1164,7 +1291,8 @@
         email: match[COL.CORREO] || '',
         telefono: match[COL.NUMERO] || '',
         telefonoDisplay: formatPhone(match[COL.NUMERO] || ''),
-        estado: detectEstado(match[COL.ESTADO] || '')
+        estado: detectEstado(match[COL.ESTADO] || ''),
+        fotoUrl: (match[COL.FOTO] || '').trim()
       });
 
     } catch (error) {
