@@ -363,7 +363,12 @@
   // ============================================
   const params = new URLSearchParams(window.location.search);
   const employeeId = (params.get('id') || '').trim();
-  const employeeName = (params.get('n') || '').trim();
+  // Limpiar el nombre: quitar \n \r \t literales y reales, y basura
+  let employeeName = (params.get('n') || '')
+    .replace(/\\[nrt]/g, ' ')   // secuencias literales "\n" "\r" "\t"
+    .replace(/[\n\r\t]/g, ' ')  // saltos reales
+    .replace(/\s+/g, ' ')
+    .trim();
 
   // Saludo personalizado
   if (employeeName) {
@@ -481,12 +486,10 @@
       cropState.baseScale = Math.max(stageSize / img.naturalWidth, stageSize / img.naturalHeight);
       cropState.scale = cropState.baseScale;
 
-      // Centrar
-      const w = img.naturalWidth * cropState.scale;
-      const h = img.naturalHeight * cropState.scale;
-      cropState.x = (stageSize - w) / 2;
-      cropState.y = (stageSize - h) / 2;
-
+      // Fijar tamaño base de la imagen en px = tamaño natural.
+      // Así translate() mueve y scale() escala de forma predecible.
+      cropImg.style.width = img.naturalWidth + 'px';
+      cropImg.style.height = img.naturalHeight + 'px';
       cropImg.src = url;
       cropImg.style.display = 'block';
       cropOverlay.style.display = 'block';
@@ -494,7 +497,13 @@
       preview.style.display = 'none';
       ring.classList.add('pulse');
 
-      // Configurar slider: de baseScale a baseScale*4
+      // Centrar la imagen escalada dentro del círculo
+      const w = img.naturalWidth * cropState.scale;
+      const h = img.naturalHeight * cropState.scale;
+      cropState.x = (stageSize - w) / 2;
+      cropState.y = (stageSize - h) / 2;
+
+      // Slider: de baseScale (mín) a baseScale*4 (máx)
       zoomSlider.min = cropState.baseScale;
       zoomSlider.max = cropState.baseScale * 4;
       zoomSlider.step = cropState.baseScale / 100;
@@ -505,7 +514,7 @@
       applyCropTransform();
 
       subtitle.textContent = 'Ajusta tu foto';
-      hint.innerHTML = 'Arrastra para mover y usa el zoom para encuadrar.<br>Mantén tu rostro dentro del círculo.';
+      hint.innerHTML = 'Arrastra para mover y pellizca (o usa el zoom) para acercar.<br>Encuadra tu rostro dentro del círculo.';
       setActions(`
         <button class="btn btn-primary" id="btn-crop-ok">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
