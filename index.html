@@ -762,6 +762,22 @@
     .info-item { padding: 10px 11px; }
     .credential-container { padding: 16px; }
   }
+
+  /* ── Acciones de la persona dueña (abierta desde su portal) ── */
+  .owner-actions{display:none;justify-content:center;margin-top:14px}
+  .owner-actions.show{display:flex}
+  .btn-foto{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:100px;
+    background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--text-primary);
+    font:600 13px/1 inherit;font-family:inherit;text-decoration:none;cursor:pointer;transition:background .2s,transform .2s}
+  .btn-foto:hover{transform:translateY(-1px)}
+  .btn-foto svg{width:16px;height:16px}
+  .portal-back{position:fixed;z-index:50;top:max(14px,calc(env(safe-area-inset-top,0px) + 8px));left:max(14px,calc(env(safe-area-inset-left,0px) + 8px));
+    width:42px;height:42px;border-radius:13px;display:none;align-items:center;justify-content:center;
+    background:var(--glass-bg);border:1px solid var(--glass-border);color:var(--text-primary);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);text-decoration:none}
+  .portal-back.show{display:flex}
+  body.con-volver{padding-top:max(66px,calc(env(safe-area-inset-top,0px) + 60px))}
+  .portal-back svg{width:20px;height:20px}
 </style>
 </head>
 <body>
@@ -769,6 +785,8 @@
 <!-- Background -->
 <div class="bg-gradient"></div>
 <div class="noise"></div>
+
+<a class="portal-back" id="portal-back" href="/portal/" aria-label="Volver al portal" title="Volver al portal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
 
 <!-- Credential -->
 <div class="credential-container">
@@ -832,6 +850,9 @@
       <div class="person-name" id="person-name">María González</div>
       <div class="person-role" id="person-role">Directora de Operaciones</div>
       <div class="person-project" id="person-project">Proyecto Amazonía</div>
+      <div class="owner-actions" id="owner-actions">
+        <a class="btn-foto" id="btn-foto" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg><span id="btn-foto-tx">Cambiar foto de perfil</span></a>
+      </div>
     </div>
 
     <div class="divider"></div>
@@ -997,6 +1018,14 @@
 
   // Variable global para vCard
   let currentData = null;
+
+  // Foto recién cambiada en este teléfono (la hoja publicada tarda unos minutos en reflejarla)
+  function fotoReciente(id) {
+    try {
+      const v = JSON.parse(localStorage.getItem('gs-foto-nueva-' + String(id || '').toUpperCase()) || 'null');
+      return (v && v.d && Date.now() - v.t < 30 * 60000) ? v.d : '';
+    } catch (e) { return ''; }
+  }
 
   // ============================================
   // PARSER CSV (maneja comas dentro de comillas)
@@ -1228,7 +1257,18 @@
   // ============================================
   async function loadFromSheet() {
     const params = new URLSearchParams(window.location.search);
-    const employeeId = (params.get('id') || '').trim().toUpperCase();
+    let employeeId = (params.get('id') || '').trim().toUpperCase();
+
+    // Sesión del portal en este teléfono (si la hay): así «Credencial digital»
+    // abre la credencial de quien entró, y no una de ejemplo.
+    const SES = (function(){
+      try { const s = JSON.parse(localStorage.getItem('gs-sesion') || 'null'); return (s && s.exp > Date.now()) ? s : null; }
+      catch (e) { return null; }
+    })();
+    const ciDe = v => { const d = String(v || '').replace(/\D/g, ''); return d ? d.padStart(10, '0') : ''; };
+    const miCedula = SES ? ciDe(SES.cedula) : '';
+    if (!employeeId && SES && SES.id_gl) employeeId = String(SES.id_gl).trim().toUpperCase();
+    if (SES) { document.getElementById('portal-back').classList.add('show'); document.body.classList.add('con-volver'); }
 
     // Propagar el id de la persona a los enlaces del holding,
     // para que 'Volver' en empresa.html regrese a SU credencial.
@@ -1237,20 +1277,9 @@
       a.href = 'empresa.html?e=' + e + (employeeId ? '&id=' + encodeURIComponent(employeeId) : '');
     });
 
-    // Si no hay ID en la URL, mostrar datos de ejemplo
-    if (!employeeId) {
-      renderProfile({
-        id: 'GL001',
-        alias: 'William Israel Gallegos Carrillo',
-        cargo: 'CTO',
-        proyecto: 'GLOBECO',
-        ciudad: 'QUITO',
-        email: 'wgallegos@globecolatam.com',
-        telefono: '593978627143',
-        telefonoDisplay: formatPhone('593978627143'),
-        estado: 'Activo',
-        fotoUrl: ''
-      });
+    // Sin ID y sin sesión del portal: no hay a quién mostrar
+    if (!employeeId && !miCedula) {
+      showError('Abre tu credencial desde el portal GLOBECO SMART o escanea tu código QR.');
       return;
     }
 
@@ -1265,12 +1294,17 @@
       const dataRows = rows.slice(1);
 
       // Buscar por ID (columna A)
-      const match = dataRows.find(row => 
+      let match = employeeId ? dataRows.find(row =>
         row[COL.ID] && row[COL.ID].trim().toUpperCase() === employeeId
-      );
+      ) : null;
+      // Desde el portal, sin código GL: se busca por cédula
+      if (!match && !params.get('id') && miCedula) {
+        match = dataRows.find(row => ciDe(row[COL.CEDULA]) === miCedula) || null;
+        if (match) employeeId = String(match[COL.ID] || '').trim().toUpperCase();
+      }
 
       if (!match) {
-        showError(`No se encontró el colaborador con ID: ${employeeId}`);
+        showError(employeeId ? `No se encontró el colaborador con ID: ${employeeId}` : 'No encontramos tu ficha en la base. Contacta al administrador.');
         return;
       }
 
@@ -1294,8 +1328,24 @@
         telefono: match[COL.NUMERO] || '',
         telefonoDisplay: formatPhone(match[COL.NUMERO] || ''),
         estado: detectEstado(match[COL.ESTADO] || ''),
-        fotoUrl: (match[COL.FOTO] || '').trim()
+        fotoUrl: fotoReciente(employeeId) || (match[COL.FOTO] || '').trim()
       });
+
+      // Enlaces del holding con el ID ya resuelto
+      document.querySelectorAll('.holding-link').forEach(function(a){
+        a.href = 'empresa.html?e=' + a.getAttribute('data-e') + (employeeId ? '&id=' + encodeURIComponent(employeeId) : '');
+      });
+
+      // Si quien mira es la misma persona (sesión del portal), puede cambiar su foto
+      const esDueno = !!(miCedula && ciDe(match[COL.CEDULA]) === miCedula);
+      const permisos = (SES && SES.permisos || []).map(p => String(p).toLowerCase().trim());
+      const puedeFoto = esDueno && permisos.some(p => p === 'credencial_foto' || p === 'credencial_digital');
+      if (puedeFoto) {
+        const nom = String(match[COL.NOMBRES] || match[COL.ALIAS] || '').trim().split(/\s+/)[0] || '';
+        document.getElementById('btn-foto').href = 'subir-foto.html?id=' + encodeURIComponent(employeeId) + '&n=' + encodeURIComponent(nom) + '&desde=credencial';
+        document.getElementById('btn-foto-tx').textContent = (match[COL.FOTO] || fotoReciente(employeeId)) ? 'Cambiar foto de perfil' : 'Agregar foto de perfil';
+        document.getElementById('owner-actions').classList.add('show');
+      }
 
     } catch (error) {
       console.error('Error cargando datos:', error);

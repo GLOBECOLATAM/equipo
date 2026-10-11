@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Actualizar foto · Globeco Smart</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -65,7 +65,15 @@
     min-height:100vh; min-height:100dvh;
     display:flex; align-items:center; justify-content:center;
     background:var(--bg-base); overflow-x:hidden;
+    padding:max(16px,env(safe-area-inset-top,0px)) env(safe-area-inset-right,0px) max(16px,env(safe-area-inset-bottom,0px)) env(safe-area-inset-left,0px);
   }
+  .back-btn{position:fixed;z-index:50;top:max(14px,calc(env(safe-area-inset-top,0px) + 8px));left:max(14px,calc(env(safe-area-inset-left,0px) + 8px));
+    width:42px;height:42px;border-radius:13px;display:none;align-items:center;justify-content:center;
+    background:var(--glass-bg,rgba(255,255,255,.08));border:1px solid var(--glass-border,rgba(255,255,255,.14));color:var(--text-primary,#fff);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);text-decoration:none}
+  .back-btn.show{display:flex}
+  body.con-volver{padding-top:max(66px,calc(env(safe-area-inset-top,0px) + 60px))}
+  .back-btn svg{width:20px;height:20px}
   .bg-gradient { position:fixed; inset:0; z-index:0; overflow:hidden; }
   .bg-gradient::before {
     content:''; position:absolute; top:-30%; left:-30%; width:160%; height:160%;
@@ -256,6 +264,7 @@
 </style>
 </head>
 <body>
+<a class="back-btn" id="back-btn" href="./" aria-label="Volver" title="Volver"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
 <div class="bg-gradient"></div>
 <div class="noise"></div>
 
@@ -320,7 +329,7 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
       </div>
       <h2>¡Foto actualizada!</h2>
-      <p>Tu nueva foto se verá reflejada en tu credencial digital en aproximadamente 1 minuto.</p>
+      <p>Tu nueva foto ya aparece en tu credencial y en tu portal. Tus compañeros la verán en unos minutos.</p>
       <a class="btn btn-primary" id="btn-view-credential" href="#" style="margin-top:8px;width:100%;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h3"/><path d="M15 12h3"/><path d="M7 16h10"/></svg>
         Ver mi credencial
@@ -362,9 +371,20 @@
   // Parámetros de la URL
   // ============================================
   const params = new URLSearchParams(window.location.search);
-  const employeeId = (params.get('id') || '').trim();
+  // Sesión del portal en este teléfono (si la hay)
+  const SES = (function(){
+    try { const s = JSON.parse(localStorage.getItem('gs-sesion') || 'null'); return (s && s.exp > Date.now()) ? s : null; }
+    catch (e) { return null; }
+  })();
+  const employeeId = ((params.get('id') || '') || (SES && SES.id_gl) || '').trim();
+  const desdeCredencial = params.get('desde') === 'credencial';
+  (function(){
+    const b = document.getElementById('back-btn');
+    if (desdeCredencial) { b.href = './?id=' + encodeURIComponent(employeeId); b.classList.add('show'); document.body.classList.add('con-volver'); }
+    else if (SES) { b.href = '/portal/'; b.classList.add('show'); document.body.classList.add('con-volver'); }
+  })();
   // Limpiar el nombre: quitar \n \r \t literales y reales, y basura
-  let employeeName = (params.get('n') || '')
+  let employeeName = (params.get('n') || (SES && SES.nombre) || '')
     .replace(/\\[nrt]/g, ' ')   // secuencias literales "\n" "\r" "\t"
     .replace(/[\n\r\t]/g, ' ')  // saltos reales
     .replace(/\s+/g, ' ')
@@ -707,6 +727,7 @@
         })
       });
       if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      guardarFotoLocal('data:image/jpeg;base64,' + base64);
       // Configurar el botón "Ver mi credencial" con el id de la persona.
       // El parámetro v fuerza recarga fresca para ver la foto nueva antes.
       const credLink = 'https://globecolatam.github.io/equipo/?id=' + encodeURIComponent(employeeId) + '&v=' + Date.now();
@@ -715,6 +736,20 @@
     } catch (e) {
       showError('No pudimos guardar tu foto. Revisa tu conexión e intenta de nuevo.');
     }
+  }
+
+  // La foto nueva se ve al instante en este teléfono (credencial y portal),
+  // mientras la base se actualiza para los demás.
+  function guardarFotoLocal(dataUrl) {
+    try {
+      localStorage.setItem('gs-foto-nueva-' + employeeId.toUpperCase(), JSON.stringify({ d: dataUrl, t: Date.now() }));
+      if (SES && String(SES.id_gl || '').toUpperCase() === employeeId.toUpperCase()) {
+        localStorage.setItem('gs-foto-' + SES.cedula, JSON.stringify(dataUrl));
+        localStorage.setItem('gs-foto-v-' + SES.cedula, JSON.stringify('local:' + Date.now()));
+        SES.foto = dataUrl;
+        localStorage.setItem('gs-sesion', JSON.stringify(SES));
+      }
+    } catch (e) {}
   }
 
   function showError(text) {
