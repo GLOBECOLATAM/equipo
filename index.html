@@ -778,6 +778,253 @@
   .portal-back.show{display:flex}
   body.con-volver{padding-top:max(66px,calc(env(safe-area-inset-top,0px) + 60px))}
   .portal-back svg{width:20px;height:20px}
+
+  /* =====================================================
+     REDISEÑO 2026 — estilo premium (Apple / NVIDIA / LN)
+     ===================================================== */
+
+  /* Entrada de la tarjeta: sube, se endereza y se enfoca.
+     Usa translate/scale/filter (no transform) para que la
+     inclinación 3D con el mouse pueda usar transform. */
+  @keyframes cardReveal {
+    from { opacity: 0; translate: 0 34px; scale: .94; filter: blur(10px); }
+    to   { opacity: 1; translate: 0 0;    scale: 1;   filter: blur(0); }
+  }
+  @keyframes slideIn {
+    from { opacity: 0; translate: 0 14px; filter: blur(4px); }
+    to   { opacity: 1; translate: 0 0;    filter: blur(0); }
+  }
+  @keyframes fadeInUp {
+    from { opacity: 0; translate: 0 40px; }
+    to   { opacity: 1; translate: 0 0; }
+  }
+
+  .credential-card {
+    --rx: 0deg; --ry: 0deg; --mx: 50%; --my: 0%;
+    transform: perspective(1100px) rotateX(var(--rx)) rotateY(var(--ry));
+    transition: transform .5s cubic-bezier(.16,1,.3,1), box-shadow .5s ease;
+    box-shadow: 0 30px 80px -30px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.02) inset;
+    will-change: transform;
+  }
+  .credential-card.tilting { transition: transform .08s linear, box-shadow .5s ease; }
+
+  /* Brillo holográfico que sigue al puntero */
+  .card-glare {
+    position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 3;
+    opacity: 0; transition: opacity .45s ease;
+    background:
+      radial-gradient(circle at var(--mx) var(--my), rgba(255,255,255,.16), transparent 42%),
+      conic-gradient(from 210deg at var(--mx) var(--my),
+        rgba(52,211,153,.10), rgba(56,189,248,.10), rgba(167,139,250,.08), rgba(52,211,153,.10));
+    mix-blend-mode: soft-light;
+  }
+  .credential-card:hover .card-glare, .credential-card.tilting .card-glare { opacity: 1; }
+
+  /* Avatar con anillo cónico que gira + halo */
+  .avatar-ring {
+    position: relative;
+    width: 118px; height: 118px;
+    padding: 4px;
+    background: none;
+    animation: avatarPop .9s cubic-bezier(.34,1.56,.64,1) .5s both;
+    margin-bottom: 20px;
+  }
+  .avatar-ring::before, .avatar-ring::after {
+    content: ''; position: absolute; inset: 0; border-radius: 50%;
+    background: conic-gradient(from 0deg, var(--brand-green), var(--brand-blue-light), var(--brand-blue), var(--brand-teal), var(--brand-green-light), var(--brand-green));
+    animation: ringSpin 7s linear infinite;
+  }
+  .avatar-ring::after { inset: -8px; filter: blur(18px); opacity: .45; z-index: -1; }
+  .avatar-inner { position: relative; z-index: 1; border-width: 3px; font-size: 38px; }
+  @keyframes ringSpin { to { rotate: 360deg; } }
+  @keyframes avatarPop {
+    from { opacity: 0; scale: .6; }
+    to   { opacity: 1; scale: 1; }
+  }
+
+  /* Nombre grande, apretado y con contraste */
+  .person-name {
+    font-size: clamp(30px, 8.6vw, 38px);
+    font-weight: 800;
+    letter-spacing: -1.4px;
+    line-height: 1.02;
+  }
+  .person-name .pn-first, .person-name .pn-rest { display: block; }
+  .person-name .pn-rest {
+    background: linear-gradient(100deg, var(--brand-green-light), var(--brand-blue-light) 60%, var(--brand-green-light));
+    background-size: 200% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: nameSheen 6s ease-in-out infinite;
+  }
+  @keyframes nameSheen { 0%,100% { background-position: 0% 0; } 50% { background-position: 100% 0; } }
+  .person-role {
+    margin-top: 12px;
+    font-size: 15px; font-weight: 700; letter-spacing: .2px;
+    background: none; -webkit-text-fill-color: currentColor; color: #4ade80;
+    text-shadow: 0 0 22px rgba(74,222,128,.35);
+  }
+  .person-project {
+    margin-top: 8px; display: inline-flex; padding: 5px 12px; border-radius: 100px;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    font-size: 10.5px; letter-spacing: 2px; color: var(--text-secondary);
+  }
+
+  /* Botones rápidos tipo ficha de contacto del iPhone */
+  .quick-actions {
+    display: flex; gap: 10px;
+    width: 100%; margin-top: 22px;
+  }
+  .quick-actions .qa { flex: 1 1 0; min-width: 0; }
+  .qa {
+    display: flex; flex-direction: column; align-items: center; gap: 7px;
+    padding: 12px 4px 10px; border-radius: 16px;
+    background: var(--glass-bg); border: 1px solid var(--glass-border);
+    color: var(--text-primary); text-decoration: none; font: inherit; cursor: pointer;
+    transition: transform .25s cubic-bezier(.16,1,.3,1), background .25s ease, border-color .25s ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .qa:hover { transform: translateY(-3px); background: var(--card-hover); border-color: var(--card-border); }
+  .qa:active { transform: scale(.94); }
+  .qa[hidden] { display: none; }
+  .qa-ic {
+    width: 38px; height: 38px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; color: #fff;
+  }
+  .qa-ic svg { width: 18px; height: 18px; }
+  .qa-call .qa-ic { background: linear-gradient(135deg, #22c55e, #059669); box-shadow: 0 6px 18px -6px rgba(34,197,94,.7); }
+  .qa-wa   .qa-ic { background: linear-gradient(135deg, #25D366, #128C7E); box-shadow: 0 6px 18px -6px rgba(37,211,102,.7); }
+  .qa-mail .qa-ic { background: linear-gradient(135deg, #38bdf8, #0369a1); box-shadow: 0 6px 18px -6px rgba(56,189,248,.7); }
+  .qa-qr   .qa-ic { background: linear-gradient(135deg, #a78bfa, #0d9488); box-shadow: 0 6px 18px -6px rgba(167,139,250,.6); }
+  .qa-tx { font-size: 11px; font-weight: 600; color: var(--text-secondary); }
+
+  /* Botón principal con brillo que recorre */
+  .save-contact-btn { position: relative; overflow: hidden; padding: 16px; border-radius: 16px; font-size: 15px; }
+  .save-contact-btn::after {
+    content: ''; position: absolute; top: 0; bottom: 0; width: 40%; left: -60%;
+    background: linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent);
+    animation: btnSheen 4.5s ease-in-out 1.6s infinite;
+  }
+  @keyframes btnSheen { 0% { left: -60%; } 35%,100% { left: 130%; } }
+
+  /* Reverso de la tarjeta: código QR */
+  .card-back { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; text-align: center; padding: 10px 0; }
+  .credential-card.show-back .card-front { display: none; }
+  .credential-card.show-back .card-back { display: flex; }
+  .qr-frame {
+    position: relative; padding: 16px; border-radius: 22px; background: #fff;
+    box-shadow: 0 20px 60px -20px rgba(0,168,107,.55);
+  }
+  .qr-frame::before {
+    content: ''; position: absolute; inset: -2px; border-radius: 24px; z-index: -1;
+    background: linear-gradient(135deg, var(--brand-green-light), var(--brand-blue-light) 50%, var(--brand-green));
+    background-size: 200% 200%;
+    animation: ringGlow 5s ease-in-out infinite;
+  }
+  #qr-box { width: 208px; height: 208px; }
+  #qr-box img, #qr-box canvas { width: 100% !important; height: 100% !important; display: block; }
+  .qr-name { font-size: 22px; font-weight: 800; letter-spacing: -.6px; color: var(--text-primary); }
+  .qr-hint { font-size: 12.5px; color: var(--text-secondary); max-width: 250px; line-height: 1.5; }
+  .qr-id { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; color: var(--text-tertiary); }
+  .btn-volver-frente {
+    display: inline-flex; align-items: center; gap: 8px; height: 42px; padding: 0 20px; border-radius: 100px;
+    background: var(--glass-bg); border: 1px solid var(--glass-border); color: var(--text-primary);
+    font: 600 13.5px/1 inherit; font-family: inherit; cursor: pointer;
+  }
+  .btn-volver-frente svg { width: 16px; height: 16px; }
+
+  /* Estado activo: onda alrededor del punto */
+  .badge-active .badge-dot { box-shadow: 0 0 0 0 rgba(0,168,107,.6); animation: dotRipple 2s ease-out infinite; }
+  @keyframes dotRipple { 0% { box-shadow: 0 0 0 0 rgba(0,168,107,.6); } 100% { box-shadow: 0 0 0 7px rgba(0,168,107,0); } }
+
+  /* Empresas del grupo: logos más grandes y con vida */
+  .holding-grid { gap: 12px; }
+  .holding-company { padding: 18px 8px 14px; gap: 11px; position: relative; overflow: hidden; }
+  .holding-company::before {
+    content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity .3s ease;
+    background: radial-gradient(circle at 50% 0%, rgba(52,211,153,.18), transparent 70%);
+  }
+  .holding-company:hover::before { opacity: 1; }
+  .holding-logo { width: 58px; height: 58px; border-radius: 16px; box-shadow: 0 10px 26px -10px rgba(0,0,0,.5); transition: transform .3s cubic-bezier(.34,1.56,.64,1); }
+  .holding-logo img { border-radius: 12px; }
+  .holding-company:hover .holding-logo { transform: scale(1.08) rotate(-2deg); }
+  .holding-company-name { font-size: 11px; color: var(--text-primary); }
+  .holding-title { color: var(--text-primary); }
+
+  /* Carga: silueta de la tarjeta con brillo */
+  .skeleton-card {
+    width: 100%; padding: 32px 28px; border-radius: 24px;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+    display: flex; flex-direction: column; align-items: center; gap: 14px;
+  }
+  .sk { background: var(--glass-border); border-radius: 10px; position: relative; overflow: hidden; }
+  .sk::after {
+    content: ''; position: absolute; inset: 0; translate: -100% 0;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+    animation: skShimmer 1.4s ease-in-out infinite;
+  }
+  @keyframes skShimmer { to { translate: 100% 0; } }
+  .sk-circle { width: 118px; height: 118px; border-radius: 50%; margin-bottom: 6px; }
+  .sk-line { height: 14px; }
+  .sk-row { width: 100%; height: 56px; border-radius: 14px; }
+  .sk-caption { font-size: 12.5px; color: var(--text-secondary); font-weight: 500; margin-top: 4px; }
+
+  /* Error claro y legible */
+  .state-card {
+    width: 100%; display: none; flex-direction: column; align-items: center; gap: 14px;
+    padding: 40px 28px; border-radius: 24px; text-align: center;
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    backdrop-filter: blur(40px); -webkit-backdrop-filter: blur(40px);
+    animation: cardReveal .9s cubic-bezier(.16,1,.3,1) both;
+  }
+  .state-icon {
+    width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    background: rgba(251,191,36,.12); color: #fbbf24; box-shadow: 0 0 0 8px rgba(251,191,36,.05);
+  }
+  .state-icon svg { width: 30px; height: 30px; }
+  .state-title { font-size: 19px; font-weight: 800; letter-spacing: -.4px; color: var(--text-primary); line-height: 1.3; }
+  .state-hint { font-size: 13.5px; color: var(--text-secondary); line-height: 1.55; max-width: 290px; }
+  .state-btn {
+    margin-top: 6px; display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 22px;
+    border-radius: 100px; background: var(--btn-gradient); color: #fff; text-decoration: none;
+    font-weight: 700; font-size: 14px; box-shadow: 0 10px 30px -10px var(--btn-shadow);
+  }
+
+  /* Escritorio: marca gigante de fondo + foco de luz */
+  .bg-word { display: none; }
+  @media (min-width: 900px) {
+    .bg-word {
+      display: block; position: fixed; z-index: 2; left: 50%; top: 50%;
+      translate: -50% -50%; pointer-events: none; user-select: none; white-space: nowrap;
+      font-size: 19vw; font-weight: 800; letter-spacing: -.05em; line-height: 1;
+      color: transparent; -webkit-text-stroke: 1px var(--glass-border);
+      animation: fadeInUp 1.6s cubic-bezier(.16,1,.3,1) both;
+    }
+    .credential-container::before {
+      content: ''; position: absolute; z-index: -1; left: 50%; top: 32%; width: 620px; height: 620px;
+      translate: -50% -50%; border-radius: 50%; pointer-events: none;
+      background: radial-gradient(circle, rgba(0,168,107,.16), transparent 65%);
+    }
+  }
+
+  /* Modo claro: tonos más oscuros para que se lea bien */
+  @media (prefers-color-scheme: light) {
+    .person-role { color: var(--brand-green-dark); text-shadow: none; }
+    .person-name .pn-rest { background-image: linear-gradient(100deg, var(--brand-green-dark), var(--brand-blue-dark) 60%, var(--brand-green-dark)); }
+    .credential-card { box-shadow: 0 30px 70px -35px rgba(5,46,22,.35); }
+  }
+
+  @media (max-width: 440px) {
+    .avatar-ring { width: 108px; height: 108px; }
+    .quick-actions { gap: 8px; }
+    .qa-tx { font-size: 10.5px; }
+    #qr-box { width: 190px; height: 190px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+  }
 </style>
 </head>
 <body>
@@ -785,23 +1032,32 @@
 <!-- Background -->
 <div class="bg-gradient"></div>
 <div class="noise"></div>
+<div class="bg-word" aria-hidden="true">GLOBECO</div>
 
 <a class="portal-back" id="portal-back" href="/portal/" aria-label="Volver al portal" title="Volver al portal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
 
 <!-- Credential -->
 <div class="credential-container">
   <!-- Loading State -->
-  <div id="loading-state" style="display:flex;flex-direction:column;align-items:center;gap:16px;padding:40px 20px;">
-    <div style="width:48px;height:48px;border-radius:50%;border:3px solid var(--glass-border);border-top-color:var(--brand-green);animation:spin 0.8s linear infinite;"></div>
-    <span style="font-size:14px;color:var(--text-secondary);font-weight:500;font-family:inherit;">Cargando credencial...</span>
+  <div id="loading-state" class="skeleton-card" style="display:flex;" aria-live="polite">
+    <div class="sk sk-circle"></div>
+    <div class="sk sk-line" style="width:62%;height:26px"></div>
+    <div class="sk sk-line" style="width:40%"></div>
+    <div class="sk sk-line" style="width:28%;height:10px;margin-bottom:10px"></div>
+    <div class="sk sk-row"></div>
+    <div class="sk sk-row"></div>
+    <div class="sk sk-row"></div>
+    <span class="sk-caption">Cargando credencial…</span>
   </div>
-  <style>@keyframes spin { to { transform: rotate(360deg); } }</style>
 
   <!-- Error State -->
-  <div id="error-state" style="display:none;flex-direction:column;align-items:center;gap:14px;padding:40px 28px;background:var(--card-bg);backdrop-filter:blur(40px);border:1px solid var(--card-border);border-radius:24px;text-align:center;">
-    <div style="width:56px;height:56px;border-radius:50%;background:rgba(239,68,68,0.1);display:flex;align-items:center;justify-content:center;font-size:28px;">⚠</div>
-    <span id="error-message" style="font-size:15px;color:var(--text-primary);font-weight:600;">Colaborador no encontrado</span>
-    <span style="font-size:13px;color:var(--text-tertiary);">Verifica el ID o contacta al administrador</span>
+  <div id="error-state" class="state-card" role="alert">
+    <div class="state-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="11" r="2"/><path d="M14 10h4M14 14h4M6.5 16c.6-1.2 1.5-1.8 2.5-1.8s1.9.6 2.5 1.8"/></svg>
+    </div>
+    <span id="error-message" class="state-title">Colaborador no encontrado</span>
+    <span class="state-hint">Verifica el código QR o contacta al administrador.</span>
+    <a class="state-btn" href="/portal/">Ir al portal GLOBECO SMART</a>
   </div>
 
   <!-- Deactivated State (REQUIERE QR = NO) -->
@@ -821,6 +1077,21 @@
 
   <div class="credential-card" style="display:none;">
     <div class="card-shine"></div>
+    <div class="card-glare"></div>
+
+    <!-- Reverso: código QR de la credencial -->
+    <div class="card-back" id="card-back">
+      <span class="qr-id" id="qr-id">GL000</span>
+      <div class="qr-frame"><div id="qr-box"></div></div>
+      <span class="qr-name" id="qr-name"></span>
+      <span class="qr-hint">Escanea este código para abrir la credencial digital.</span>
+      <button class="btn-volver-frente" type="button" id="btn-volver-frente">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+        Ver credencial
+      </button>
+    </div>
+
+    <div class="card-front">
 
     <!-- Header: Logo + Estado -->
     <div class="company-header">
@@ -850,6 +1121,24 @@
       <div class="person-name" id="person-name">María González</div>
       <div class="person-role" id="person-role">Directora de Operaciones</div>
       <div class="person-project" id="person-project">Proyecto Amazonía</div>
+      <div class="quick-actions" id="quick-actions">
+        <a class="qa qa-call" id="qa-call" href="#" aria-label="Llamar">
+          <span class="qa-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg></span>
+          <span class="qa-tx">Llamar</span>
+        </a>
+        <a class="qa qa-wa" id="qa-wa" href="#" target="_blank" rel="noopener" aria-label="WhatsApp">
+          <span class="qa-ic"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38a9.9 9.9 0 0 0 4.74 1.21c5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.8 14.03c-.24.68-1.42 1.31-1.96 1.36-.5.05-1.13.22-3.8-.79-3.2-1.26-5.23-4.52-5.39-4.73-.16-.21-1.29-1.72-1.29-3.28 0-1.56.82-2.33 1.11-2.65.29-.32.63-.4.84-.4l.6.01c.19.01.45-.07.71.54.26.63.89 2.18.97 2.34.08.16.13.34.03.55-.1.21-.16.34-.32.52-.16.18-.33.41-.47.55-.16.16-.32.33-.14.65.18.32.81 1.34 1.75 2.17 1.2 1.07 2.21 1.4 2.53 1.56.32.16.5.13.68-.08.18-.21.79-.92 1-1.24.21-.32.42-.26.71-.16.29.11 1.84.87 2.16 1.03.32.16.53.24.61.37.08.13.08.76-.16 1.44z"/></svg></span>
+          <span class="qa-tx">WhatsApp</span>
+        </a>
+        <a class="qa qa-mail" id="qa-mail" href="#" aria-label="Enviar correo">
+          <span class="qa-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg></span>
+          <span class="qa-tx">Correo</span>
+        </a>
+        <button class="qa qa-qr" id="qa-qr" type="button" aria-label="Mostrar código QR">
+          <span class="qa-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3M21 14v.01M17 21h4v-4M14 18v3"/></svg></span>
+          <span class="qa-tx">Mi QR</span>
+        </button>
+      </div>
       <div class="owner-actions" id="owner-actions">
         <a class="btn-foto" id="btn-foto" href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/></svg><span id="btn-foto-tx">Cambiar foto de perfil</span></a>
       </div>
@@ -859,13 +1148,13 @@
 
     <!-- Datos -->
     <div class="info-grid">
-      <a class="info-item" id="email-row" href="/cdn-cgi/l/email-protection#046965766d652a636b6a7e6568617e4463686b6661676b77696576702a676b69">
+      <a class="info-item" id="email-row" href="#">
         <div class="info-icon icon-email">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
         </div>
         <div class="info-content">
           <span class="info-label">Email</span>
-          <span class="info-value" id="email-value"><span class="__cf_email__" data-cfemail="036e62716a622d646c6d79626f667943646f6c6166606c706e6271772d606c6e">[email&#160;protected]</span></span>
+          <span class="info-value" id="email-value"></span>
         </div>
       </a>
 
@@ -907,6 +1196,7 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
       Guardar Contacto
     </button>
+    </div><!-- /card-front -->
   </div>
 
   <!-- Holding: empresas del grupo -->
@@ -977,44 +1267,18 @@
   })();
 </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <script>
   // ============================================
-  // CONFIGURACIÓN — Tu Google Sheet CSV público
+  // CONFIGURACIÓN — API de la credencial (Apps Script)
+  // Devuelve solo los datos públicos de UNA persona.
+  // Código del servidor: apps-script/credencial.gs
   // ============================================
-  const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ1tfVCCLyArHF2pTZ6DfxI91vsoPQqEfzhame8khKUBOLTqzjngdaJkClmjvs-fw3oQuOr2A_RakmD/pub?gid=0&single=true&output=csv';
-
-  // ============================================
-  // MAPEO DE COLUMNAS (según tu Google Sheet)
-  // A=0  ID
-  // B=1  Nombres
-  // C=2  Apellidos
-  // D=3  Alias (nombre completo para mostrar)
-  // E=4  Numero (teléfono)
-  // F=5  Cedula
-  // G=6  Correo
-  // H=7  Proyecto empresa
-  // I=8  Ciudad
-  // J=9  Cargo
-  // K=10 (no se usa)
-  // L=11 Estado
-  // ...
-  // S=18 Requiere QR (SI / NO)
-  // ============================================
-  const COL = {
-    ID: 0,
-    NOMBRES: 1,
-    APELLIDOS: 2,
-    ALIAS: 3,
-    NUMERO: 4,
-    CEDULA: 5,
-    CORREO: 6,
-    PROYECTO: 7,
-    CIUDAD: 8,
-    CARGO: 9,
-    ESTADO: 11,
-    REQUIERE_QR: 18,
-    FOTO: 23
-  };
+  const CREDENCIAL_API_URL = 'https://script.google.com/macros/s/AKfycbxjRQJ__gKfRP4ZiJq11hcbQLw0oZSRZPerGpx20zwT6cz8Hp12cAJ__g10kCkbsaOl/exec';   // ← pegar aquí la URL /exec de la implementación
+  const CREDENCIAL_API = (function(){
+    try { return localStorage.getItem('gs-api-credencial') || CREDENCIAL_API_URL; }
+    catch (e) { return CREDENCIAL_API_URL; }
+  })();
 
   // Variable global para vCard
   let currentData = null;
@@ -1025,53 +1289,6 @@
       const v = JSON.parse(localStorage.getItem('gs-foto-nueva-' + String(id || '').toUpperCase()) || 'null');
       return (v && v.d && Date.now() - v.t < 30 * 60000) ? v.d : '';
     } catch (e) { return ''; }
-  }
-
-  // ============================================
-  // PARSER CSV (maneja comas dentro de comillas)
-  // ============================================
-  function parseCSV(text) {
-    const rows = [];
-    let current = '';
-    let inQuotes = false;
-    let row = [];
-
-    for (let i = 0; i < text.length; i++) {
-      const ch = text[i];
-      const next = text[i + 1];
-
-      if (inQuotes) {
-        if (ch === '"' && next === '"') {
-          current += '"';
-          i++;
-        } else if (ch === '"') {
-          inQuotes = false;
-        } else {
-          current += ch;
-        }
-      } else {
-        if (ch === '"') {
-          inQuotes = true;
-        } else if (ch === ',') {
-          row.push(current.trim());
-          current = '';
-        } else if (ch === '\n' || (ch === '\r' && next === '\n')) {
-          row.push(current.trim());
-          rows.push(row);
-          row = [];
-          current = '';
-          if (ch === '\r') i++;
-        } else {
-          current += ch;
-        }
-      }
-    }
-    // Última fila
-    if (current || row.length > 0) {
-      row.push(current.trim());
-      rows.push(row);
-    }
-    return rows;
   }
 
   // ============================================
@@ -1088,6 +1305,82 @@
     }
     return raw;
   }
+
+  // Número en formato internacional para llamar / WhatsApp (Ecuador: 09… → 5939…)
+  function telInternacional(raw) {
+    const d = String(raw || '').replace(/\D/g, '');
+    if (!d) return '';
+    if (d.length === 10 && d[0] === '0') return '593' + d.slice(1);
+    if (d.length === 9) return '593' + d;
+    return d;
+  }
+
+  // ============================================
+  // VOLTEAR TARJETA (frente ↔ QR)
+  // ============================================
+  let qrHecho = false;
+  function voltearTarjeta(alReverso) {
+    const card = document.querySelector('.credential-card');
+    if (card.dataset.volteando || card.classList.contains('show-back') === alReverso) return;
+    const alto = card.offsetHeight;
+    const reducir = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const cambiar = () => {
+      card.classList.toggle('show-back', alReverso);
+      // El reverso ocupa el mismo alto que el frente, con el contenido centrado
+      const cs = getComputedStyle(card);
+      const relleno = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.borderTopWidth) + parseFloat(cs.borderBottomWidth);
+      document.getElementById('card-back').style.minHeight = alReverso ? (alto - relleno) + 'px' : '';
+      if (alReverso && !qrHecho && window.QRCode && currentData) {
+        const url = location.origin + location.pathname + '?id=' + encodeURIComponent(currentData.id);
+        new QRCode(document.getElementById('qr-box'), {
+          text: url, width: 416, height: 416,
+          colorDark: '#052e16', colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.M
+        });
+        qrHecho = true;
+      }
+    };
+    if (reducir || !card.animate) { cambiar(); return; }
+    const base = 'perspective(1100px) ';
+    card.dataset.volteando = '1';
+    card.animate([{ transform: base + 'rotateY(0deg)' }, { transform: base + 'rotateY(90deg)' }],
+      { duration: 220, easing: 'cubic-bezier(.5,0,.75,0)' }).finished.then(() => {
+      cambiar();
+      return card.animate([{ transform: base + 'rotateY(-90deg)' }, { transform: base + 'rotateY(0deg)' }],
+        { duration: 420, easing: 'cubic-bezier(.16,1,.3,1)' }).finished;
+    }).finally(() => { delete card.dataset.volteando; });
+  }
+  document.getElementById('qa-qr').addEventListener('click', () => voltearTarjeta(true));
+  document.getElementById('btn-volver-frente').addEventListener('click', () => voltearTarjeta(false));
+
+  // ============================================
+  // INCLINACIÓN 3D + BRILLO HOLOGRÁFICO (mouse / trackpad)
+  // ============================================
+  (function initTilt() {
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const card = document.querySelector('.credential-card');
+    let raf = 0;
+    card.addEventListener('pointermove', (e) => {
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width;
+      const y = (e.clientY - r.top) / r.height;
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        card.classList.add('tilting');
+        card.style.setProperty('--ry', ((x - .5) * 10).toFixed(2) + 'deg');
+        card.style.setProperty('--rx', ((.5 - y) * 8).toFixed(2) + 'deg');
+        card.style.setProperty('--mx', (x * 100).toFixed(1) + '%');
+        card.style.setProperty('--my', (y * 100).toFixed(1) + '%');
+      });
+    });
+    card.addEventListener('pointerleave', () => {
+      cancelAnimationFrame(raf);
+      card.classList.remove('tilting');
+      card.style.setProperty('--rx', '0deg');
+      card.style.setProperty('--ry', '0deg');
+    });
+  })();
 
   // ============================================
   // DETECTAR ESTADO (activo / inactivo)
@@ -1149,8 +1442,37 @@
       avatarEl.textContent = getInitials(data.alias);
     }
 
-    // Datos principales
-    document.getElementById('person-name').textContent = data.alias;
+    // Datos principales: primer nombre arriba, el resto con degradado debajo
+    const nameEl = document.getElementById('person-name');
+    nameEl.innerHTML = '';
+    const partes = String(data.alias || '').trim().split(/\s+/);
+    const pnFirst = document.createElement('span');
+    pnFirst.className = 'pn-first';
+    pnFirst.textContent = partes[0] || '';
+    nameEl.appendChild(pnFirst);
+    if (partes.length > 1) {
+      const pnRest = document.createElement('span');
+      pnRest.className = 'pn-rest';
+      pnRest.textContent = partes.slice(1).join(' ');
+      nameEl.appendChild(pnRest);
+    }
+
+    // Botones rápidos
+    const tel = telInternacional(data.telefono);
+    const qaCall = document.getElementById('qa-call');
+    const qaWa = document.getElementById('qa-wa');
+    const qaMail = document.getElementById('qa-mail');
+    qaCall.hidden = qaWa.hidden = !tel;
+    if (tel) {
+      qaCall.href = 'tel:+' + tel;
+      qaWa.href = 'https://wa.me/' + tel;
+    }
+    qaMail.hidden = !data.email;
+    if (data.email) qaMail.href = 'mailto:' + data.email;
+
+    // Reverso (QR)
+    document.getElementById('qr-name').textContent = data.alias;
+    document.getElementById('qr-id').textContent = data.id;
     document.getElementById('person-role').textContent = data.cargo;
     document.getElementById('person-project').textContent = data.proyecto;
 
@@ -1165,7 +1487,7 @@
 
     if (data.telefono) {
       document.getElementById('phone-value').textContent = data.telefonoDisplay;
-      document.getElementById('phone-row').href = 'tel:+' + data.telefono.replace(/\D/g, '');
+      document.getElementById('phone-row').href = 'tel:+' + tel;
       document.getElementById('phone-row').style.display = 'flex';
     } else {
       document.getElementById('phone-row').style.display = 'none';
@@ -1253,7 +1575,7 @@
   }
 
   // ============================================
-  // CARGAR DATOS DESDE GOOGLE SHEETS
+  // CARGAR DATOS DESDE LA API
   // ============================================
   async function loadFromSheet() {
     const params = new URLSearchParams(window.location.search);
@@ -1265,85 +1587,73 @@
       try { const s = JSON.parse(localStorage.getItem('gs-sesion') || 'null'); return (s && s.exp > Date.now()) ? s : null; }
       catch (e) { return null; }
     })();
-    const ciDe = v => { const d = String(v || '').replace(/\D/g, ''); return d ? d.padStart(10, '0') : ''; };
-    const miCedula = SES ? ciDe(SES.cedula) : '';
-    if (!employeeId && SES && SES.id_gl) employeeId = String(SES.id_gl).trim().toUpperCase();
+    const sesId = SES && SES.id_gl ? String(SES.id_gl).trim().toUpperCase() : '';
+    const sesToken = SES && SES.token ? String(SES.token) : '';
+    if (!employeeId && sesId) employeeId = sesId;
     if (SES) { document.getElementById('portal-back').classList.add('show'); document.body.classList.add('con-volver'); }
 
     // Propagar el id de la persona a los enlaces del holding,
     // para que 'Volver' en empresa.html regrese a SU credencial.
-    document.querySelectorAll('.holding-link').forEach(function(a){
-      var e = a.getAttribute('data-e');
-      a.href = 'empresa.html?e=' + e + (employeeId ? '&id=' + encodeURIComponent(employeeId) : '');
-    });
+    const enlacesHolding = function(){
+      document.querySelectorAll('.holding-link').forEach(function(a){
+        a.href = 'empresa.html?e=' + a.getAttribute('data-e') + (employeeId ? '&id=' + encodeURIComponent(employeeId) : '');
+      });
+    };
+    enlacesHolding();
 
     // Sin ID y sin sesión del portal: no hay a quién mostrar
-    if (!employeeId && !miCedula) {
+    if (!employeeId && !sesToken) {
       showError('Abre tu credencial desde el portal GLOBECO SMART o escanea tu código QR.');
+      return;
+    }
+    if (!CREDENCIAL_API) {
+      showError('La credencial aún no está conectada al servidor. Avisa a soporte.');
       return;
     }
 
     try {
-      const response = await fetch(SHEET_CSV_URL);
+      // POST con texto plano: el token de sesión no viaja en la URL
+      const response = await fetch(CREDENCIAL_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ id: employeeId, t: sesToken })
+      });
       if (!response.ok) throw new Error('No se pudo conectar con la base de datos');
+      const r = await response.json();
 
-      const csvText = await response.text();
-      const rows = parseCSV(csvText);
-
-      // Saltar la fila de encabezados (fila 0)
-      const dataRows = rows.slice(1);
-
-      // Buscar por ID (columna A)
-      let match = employeeId ? dataRows.find(row =>
-        row[COL.ID] && row[COL.ID].trim().toUpperCase() === employeeId
-      ) : null;
-      // Desde el portal, sin código GL: se busca por cédula
-      if (!match && !params.get('id') && miCedula) {
-        match = dataRows.find(row => ciDe(row[COL.CEDULA]) === miCedula) || null;
-        if (match) employeeId = String(match[COL.ID] || '').trim().toUpperCase();
+      if (!r || !r.ok) {
+        if (r && r.error === 'desactivada') { showDeactivated(r.nombre || ''); return; }
+        if (r && (r.error === 'no_encontrado' || r.error === 'sin_id')) {
+          showError(employeeId ? `No se encontró el colaborador con ID: ${employeeId}` : 'No encontramos tu ficha en la base. Contacta al administrador.');
+          return;
+        }
+        throw new Error('Respuesta no válida');
       }
 
-      if (!match) {
-        showError(employeeId ? `No se encontró el colaborador con ID: ${employeeId}` : 'No encontramos tu ficha en la base. Contacta al administrador.');
-        return;
-      }
+      const p = r.persona || {};
+      employeeId = String(p.id || employeeId).trim().toUpperCase();
 
-      // Verificar si REQUIERE QR está en "NO"
-      const requiereQR = (match[COL.REQUIERE_QR] || '').trim().toUpperCase();
-      if (requiereQR === 'NO') {
-        const nombre = match[COL.ALIAS] || '';
-        showDeactivated(nombre);
-        return;
-      }
-
-      // Extraer datos y mostrar credencial
-      // SIEMPRE usa columna D (Alias) para el nombre
       renderProfile({
-        id: match[COL.ID] || '',
-        alias: match[COL.ALIAS] || '',
-        cargo: match[COL.CARGO] || '',
-        proyecto: match[COL.PROYECTO] || '',
-        ciudad: match[COL.CIUDAD] || '',
-        email: match[COL.CORREO] || '',
-        telefono: match[COL.NUMERO] || '',
-        telefonoDisplay: formatPhone(match[COL.NUMERO] || ''),
-        estado: detectEstado(match[COL.ESTADO] || ''),
-        fotoUrl: fotoReciente(employeeId) || (match[COL.FOTO] || '').trim()
+        id: p.id || '',
+        alias: p.alias || '',
+        cargo: p.cargo || '',
+        proyecto: p.proyecto || '',
+        ciudad: p.ciudad || '',
+        email: p.email || '',
+        telefono: p.telefono || '',
+        telefonoDisplay: formatPhone(p.telefono || ''),
+        estado: detectEstado(p.estado || ''),
+        fotoUrl: fotoReciente(employeeId) || String(p.foto || '').trim()
       });
-
-      // Enlaces del holding con el ID ya resuelto
-      document.querySelectorAll('.holding-link').forEach(function(a){
-        a.href = 'empresa.html?e=' + a.getAttribute('data-e') + (employeeId ? '&id=' + encodeURIComponent(employeeId) : '');
-      });
+      enlacesHolding();
 
       // Si quien mira es la misma persona (sesión del portal), puede cambiar su foto
-      const esDueno = !!(miCedula && ciDe(match[COL.CEDULA]) === miCedula);
-      const permisos = (SES && SES.permisos || []).map(p => String(p).toLowerCase().trim());
-      const puedeFoto = esDueno && permisos.some(p => p === 'credencial_foto' || p === 'credencial_digital');
+      const esDueno = !!(SES && (r.esDueno || (sesId && sesId === employeeId)));
+      const permisos = (SES && SES.permisos || []).map(x => String(x).toLowerCase().trim());
+      const puedeFoto = esDueno && permisos.some(x => x === 'credencial_foto' || x === 'credencial_digital');
       if (puedeFoto) {
-        const nom = String(match[COL.NOMBRES] || match[COL.ALIAS] || '').trim().split(/\s+/)[0] || '';
-        document.getElementById('btn-foto').href = 'subir-foto.html?id=' + encodeURIComponent(employeeId) + '&n=' + encodeURIComponent(nom) + '&desde=credencial';
-        document.getElementById('btn-foto-tx').textContent = (match[COL.FOTO] || fotoReciente(employeeId)) ? 'Cambiar foto de perfil' : 'Agregar foto de perfil';
+        document.getElementById('btn-foto').href = 'subir-foto.html?id=' + encodeURIComponent(employeeId) + '&n=' + encodeURIComponent(p.nombre || '') + '&desde=credencial';
+        document.getElementById('btn-foto-tx').textContent = (p.foto || fotoReciente(employeeId)) ? 'Cambiar foto de perfil' : 'Agregar foto de perfil';
         document.getElementById('owner-actions').classList.add('show');
       }
 
